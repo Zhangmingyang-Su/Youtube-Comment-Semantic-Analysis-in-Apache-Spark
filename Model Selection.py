@@ -61,3 +61,21 @@ predictions = gbtModel.transform(test)
 predictions.show(10)
 print("Prediction result summary for Gradient-Boosted Tree Model:  ")
 get_evaluation_result(predictions)
+
+# classify all the users
+# get dataset for prediction (note to exclude people we already know the label)
+# Users we don't know yet are those who don't own dog&cat and no_pets attribute is also flase
+df_unknow = df_model.filter((F.col('dog_cat') == False) & (F.col('no_pet') == False)) 
+df_unknow = df_unknow.withColumn('label',df_unknow.dog_cat.cast('integer'))
+print("There are {} users whose attribute is unclear.".format(df_unknow.count()))
+pred_all = gbtModel.transform(df_unknow)
+pred_all.show(10)
+
+#number of total user
+total_user = df_model.select('userid').distinct().count()
+#number of labeled owner
+owner_labeled = df_pets.select('userid').distinct().count() 
+#number of owner predicted
+owner_pred = pred_all.filter(F.col('prediction') == 1.0).count()
+fraction = (owner_labeled+owner_pred)/total_user
+print('Fraction of the users who are cat/dog owners (ML estimate): ', round(fraction,3))
